@@ -138,6 +138,24 @@ function initDb(db: Database.Database) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (property_id) REFERENCES odarota_properties(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS odarota_amenities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT 'check',
+      amenity_group TEXT DEFAULT 'genel',
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS odarota_property_amenities (
+      property_id INTEGER NOT NULL,
+      amenity_id INTEGER NOT NULL,
+      PRIMARY KEY (property_id, amenity_id),
+      FOREIGN KEY (property_id) REFERENCES odarota_properties(id) ON DELETE CASCADE,
+      FOREIGN KEY (amenity_id) REFERENCES odarota_amenities(id) ON DELETE CASCADE
+    );
   `);
 
   // Default admin
@@ -190,5 +208,47 @@ function initDb(db: Database.Database) {
   const insertSetting = db.prepare('INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)');
   for (const [k, v] of settings) {
     insertSetting.run(k, v);
+  }
+
+  // Default amenities
+  const amenCount = db.prepare('SELECT COUNT(*) as c FROM odarota_amenities').get() as { c: number };
+  if (amenCount.c === 0) {
+    const insertAmen = db.prepare('INSERT INTO odarota_amenities (name, icon, amenity_group, sort_order) VALUES (?, ?, ?, ?)');
+    const defaults: [string, string, string, number][] = [
+      // Indoor
+      ['Wi-Fi', 'wifi', 'indoor', 1],
+      ['Klima', 'snowflake', 'indoor', 2],
+      ['Şömine', 'flame', 'indoor', 3],
+      ['TV', 'tv', 'indoor', 4],
+      ['Mini Bar', 'wine', 'indoor', 5],
+      ['Kasa', 'lock', 'indoor', 6],
+      ['Saç Kurutma Makinesi', 'wind', 'indoor', 7],
+      // Outdoor
+      ['Havuz', 'droplet', 'outdoor', 1],
+      ['Plaj', 'sun', 'outdoor', 2],
+      ['Bahçe', 'tree', 'outdoor', 3],
+      ['Teras', 'home', 'outdoor', 4],
+      ['Balkon', 'maximize', 'outdoor', 5],
+      ['Barbekü', 'flame', 'outdoor', 6],
+      ['Otopark', 'car', 'outdoor', 7],
+      // Services
+      ['Restoran', 'utensils', 'services', 1],
+      ['Spa & Wellness', 'heart', 'services', 2],
+      ['Spor Salonu', 'dumbbell', 'services', 3],
+      ['Toplantı Salonu', 'users', 'services', 4],
+      ['Oda Servisi', 'bell', 'services', 5],
+      ['Çamaşırhane', 'shirt', 'services', 6],
+      ['Havaalanı Transferi', 'plane', 'services', 7],
+      // Accessibility
+      ['Evcil Hayvan Kabul', 'paw-print', 'accessibility', 1],
+      ['Çocuk Dostu', 'baby', 'accessibility', 2],
+      ['Engelli Erişimi', 'accessibility', 'accessibility', 3],
+      ['Kahvaltı Dahil', 'coffee', 'accessibility', 4],
+      ['Sigara İçilebilir', 'cigarette', 'accessibility', 5],
+      ['Jeneratör', 'zap', 'accessibility', 6],
+    ];
+    for (const a of defaults) {
+      insertAmen.run(...a);
+    }
   }
 }
