@@ -1,0 +1,130 @@
+import Database from 'better-sqlite3';
+import path from 'path';
+import bcrypt from 'bcryptjs';
+
+const DB_PATH = path.join(process.cwd(), 'data', 'merijans.db');
+
+let db: Database.Database | null = null;
+
+export function getDb(): Database.Database {
+  if (!db) {
+    const fs = require('fs');
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    initDb(db);
+  }
+  return db;
+}
+
+function initDb(db: Database.Database) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      meta_description TEXT DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS services (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT DEFAULT 'globe',
+      sort_order INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      excerpt TEXT DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      cover_image TEXT DEFAULT '',
+      published INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS contact_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT DEFAULT '',
+      message TEXT NOT NULL,
+      read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Default admin
+  const admin = db.prepare('SELECT id FROM admins WHERE username = ?').get('admin');
+  if (!admin) {
+    const hash = bcrypt.hashSync('merijans2026', 10);
+    db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('admin', hash);
+  }
+
+  // Default pages
+  const pages = [
+    { slug: 'hakkinda', title: 'Hakkımızda', content: '<p>Merijans Turizm Danışmanlık, 2023 yılında Ankara\'da kurulmuş, seyahat ve turizm alanında profesyonel danışmanlık hizmetleri sunan bir firmadır.</p><p>Misyonumuz, müşterilerimize en iyi seyahat deneyimini sunmak için kişiselleştirilmiş çözümler üretmektir.</p>' },
+    { slug: 'hizmetlerimiz', title: 'Hizmetlerimiz', content: '<p>Turizm alanında sunduğumuz hizmetler.</p>' },
+    { slug: 'iletisim', title: 'İletişim', content: '<p>Bizimle iletişime geçin.</p>' },
+  ];
+  const insertPage = db.prepare('INSERT OR IGNORE INTO pages (slug, title, content) VALUES (?, ?, ?)');
+  for (const p of pages) {
+    insertPage.run(p.slug, p.title, p.content);
+  }
+
+  // Default services
+  const svcCount = db.prepare('SELECT COUNT(*) as c FROM services').get() as { c: number };
+  if (svcCount.c === 0) {
+    const insertSvc = db.prepare('INSERT INTO services (title, description, icon, sort_order) VALUES (?, ?, ?, ?)');
+    const defaultServices = [
+      ['Seyahat Danışmanlığı', 'Kişiselleştirilmiş seyahat planları ve rota önerileri ile hayalinizdeki tatili oluşturuyoruz.', 'compass', 1],
+      ['Otel Rezervasyonu', 'En iyi fiyat garantisi ile dünya genelinde binlerce otelde rezervasyon imkanı.', 'building', 2],
+      ['Kurumsal Seyahat', 'Şirketinizin tüm seyahat ihtiyaçlarını profesyonel ekibimizle yönetiyoruz.', 'briefcase', 3],
+      ['Grup Turları', 'Özel grup turları ve organizasyonları ile unutulmaz deneyimler sunuyoruz.', 'users', 4],
+      ['Vize Danışmanlığı', 'Vize başvuru süreçlerinde rehberlik ve danışmanlık hizmetleri.', 'file-text', 5],
+      ['Etkinlik Organizasyonu', 'Kurumsal ve bireysel etkinlikler için kapsamlı organizasyon hizmetleri.', 'calendar', 6],
+    ];
+    for (const s of defaultServices) {
+      insertSvc.run(...s);
+    }
+  }
+
+  // Default site settings
+  const settings = [
+    ['site_name', 'Merijans Turizm Danışmanlık'],
+    ['site_tagline', 'Hayalinizdeki Seyahati Planlıyoruz'],
+    ['phone', '+90 312 000 00 00'],
+    ['email', 'info@merijans.com'],
+    ['address', 'Ankara, Türkiye'],
+    ['instagram', 'https://instagram.com/merijans'],
+    ['facebook', 'https://facebook.com/merijans'],
+    ['twitter', 'https://twitter.com/merijans'],
+    ['linkedin', 'https://linkedin.com/company/merijans'],
+  ];
+  const insertSetting = db.prepare('INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)');
+  for (const [k, v] of settings) {
+    insertSetting.run(k, v);
+  }
+}
