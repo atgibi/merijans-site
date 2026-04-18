@@ -10,6 +10,7 @@ const navItems = [
   { href: '/admin/sayfalar', label: 'Sayfalar', icon: 'file' },
   { href: '/admin/hizmetler', label: 'Hizmetler', icon: 'briefcase' },
   { href: '/admin/blog', label: 'Blog Yazıları', icon: 'pen' },
+  { href: '/admin/odarota', label: 'Odarota Tesisleri', icon: 'building' },
   { href: '/admin/site', label: 'Site Ayarları', icon: 'cog' },
 ];
 

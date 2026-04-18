@@ -74,6 +74,70 @@ function initDb(db: Database.Database) {
       read INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS odarota_properties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      -- Tesis Bilgileri
+      facility_name TEXT NOT NULL,
+      facility_type TEXT DEFAULT '',
+      province TEXT DEFAULT '',
+      district TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      latitude TEXT DEFAULT '',
+      longitude TEXT DEFAULT '',
+      -- İletişim
+      owner_name TEXT NOT NULL,
+      owner_phone TEXT NOT NULL,
+      owner_email TEXT NOT NULL,
+      owner_alt_phone TEXT DEFAULT '',
+      website TEXT DEFAULT '',
+      social_instagram TEXT DEFAULT '',
+      social_facebook TEXT DEFAULT '',
+      -- Tesis Özellikleri
+      star_rating TEXT DEFAULT '',
+      room_count TEXT DEFAULT '',
+      bed_count TEXT DEFAULT '',
+      pool TEXT DEFAULT '0',
+      beach TEXT DEFAULT '0',
+      spa TEXT DEFAULT '0',
+      restaurant TEXT DEFAULT '0',
+      parking TEXT DEFAULT '0',
+      wifi TEXT DEFAULT '0',
+      ac TEXT DEFAULT '0',
+      gym TEXT DEFAULT '0',
+      meeting_room TEXT DEFAULT '0',
+      pet_friendly TEXT DEFAULT '0',
+      -- Fiyat & Kapasite
+      price_range TEXT DEFAULT '',
+      capacity TEXT DEFAULT '',
+      check_in_time TEXT DEFAULT '14:00',
+      check_out_time TEXT DEFAULT '12:00',
+      -- Açıklamalar
+      short_description TEXT DEFAULT '',
+      full_description TEXT DEFAULT '',
+      amenities TEXT DEFAULT '',
+      nearby_attractions TEXT DEFAULT '',
+      cancellation_policy TEXT DEFAULT '',
+      special_notes TEXT DEFAULT '',
+      -- Sistem
+      status TEXT DEFAULT 'pending',
+      admin_notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS odarota_media (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      property_id INTEGER NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      file_size INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      is_cover INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (property_id) REFERENCES odarota_properties(id) ON DELETE CASCADE
+    );
   `);
 
   // Default admin
